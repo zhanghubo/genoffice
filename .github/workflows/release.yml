@@ -112,9 +112,9 @@ jobs:
       # electron-builder auto-detects target from runner.os. Override here if needed.
       - name: Build installer (${{ matrix.target }})
         # electron-builder 26.x 在 monorepo 下检测到 duplicate dependency references 后
-        # 会拒绝打 macOS app.asar。多次触发后 asar integrity 也会卡住。
-        # 加 CSC_IDENTITY_AUTO_DISCOVERY=false + asar 完整性验证关掉
-        run: CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --${{ matrix.target }} --publish never --config.asarIntegrityValidation=false
+        # 会触发 asar integrity sanity check 失败。属性名是 disableSanityCheckAsar。
+        # 加 CSC_IDENTITY_AUTO_DISCOVERY=false + 跳过 asar sanity check
+        run: CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --${{ matrix.target }} --publish never --config.disableSanityCheckAsar=true
         env:
           # GH_TOKEN unset → don't try to upload from per-build job
           GH_TOKEN: ''
