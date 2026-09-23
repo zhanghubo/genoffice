@@ -114,7 +114,15 @@ jobs:
         # electron-builder 26.x 在 monorepo 下检测到 duplicate dependency references 后
         # 会触发 asar integrity sanity check 失败。属性名是 disableSanityCheckAsar。
         # 加 CSC_IDENTITY_AUTO_DISCOVERY=false + 跳过 asar sanity check
-        run: CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --${{ matrix.target }} --publish never --config.disableSanityCheckAsar=true
+        #
+        # macOS: 显式 --arm64 只产 Apple Silicon dmg (M1/M2/M3/M4 全支持),
+        # 不产 Intel x64 版本 (用户需求"M1 以后"=纯 arm64)。
+        # 如果以后要 Intel 支持,在 macos job 上加 --x64,需要 native:build:universal。
+        run: |
+          CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --${{ matrix.target }} \
+            --publish never \
+            --config.disableSanityCheckAsar=true \
+            ${{ matrix.target == 'mac' && '--arm64' || '' }}
         env:
           # GH_TOKEN unset → don't try to upload from per-build job
           GH_TOKEN: ''
