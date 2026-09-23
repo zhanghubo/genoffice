@@ -60,13 +60,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          # npm 11+ 的新 strict 解析在 monorepo 下会生成 duplicate dependency
-          # references,electron-builder 找不到 app.asar 的入口 index.js。
-          # 固定 npm 10.x 行为稳定,且加 --legacy-peer-deps 容错。
           node-version: 22
-
-      - name: Use npm 10 (avoid npm 11 monorepo regression)
-        run: npm install -g npm@10
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable branch, 2026-07
@@ -96,9 +92,10 @@ jobs:
           restore-keys: electron-bin-${{ runner.os }}-
 
       - name: Install npm dependencies
-        # 用 npm install (不用 ci) 允许 npm 重新解析 workspace 之间的 peer dep
-        # 加 --legacy-peer-deps 容错 strict 模式
-        run: npm install --no-audit --no-fund --prefer-offline --legacy-peer-deps
+        # 上游 CI 的 npm ci 不会触发 duplicate dep 引用,只有 npm install + legacy-peer-deps
+        # 才触发。说明 lock 文件本身没事,是 install 在某些条件下才坏。
+        # 保持 npm ci 跟上游一致。
+        run: npm ci
 
       # macOS requires explicit npm scripts for universal binary + DMG signing
       - name: Pre-build (macOS universal sidecar)
@@ -114,7 +111,10 @@ jobs:
 
       # electron-builder auto-detects target from runner.os. Override here if needed.
       - name: Build installer (${{ matrix.target }})
-        run: npx electron-builder --${{ matrix.target }} --publish never
+        # electron-builder 26.x 在 monorepo 下检测到 duplicate dependency references 后
+        # 会拒绝打 macOS app.asar。多次触发后 asar integrity 也会卡住。
+        # 加 CSC_IDENTITY_AUTO_DISCOVERY=false + asar 完整性验证关掉
+        run: CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --${{ matrix.target }} --publish never --config.asarIntegrityValidation=false
         env:
           # GH_TOKEN unset → don't try to upload from per-build job
           GH_TOKEN: ''
