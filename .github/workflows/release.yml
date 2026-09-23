@@ -60,9 +60,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
+          # npm 11+ 的新 strict 解析在 monorepo 下会生成 duplicate dependency
+          # references,electron-builder 找不到 app.asar 的入口 index.js。
+          # 固定 npm 10.x 行为稳定,且加 --legacy-peer-deps 容错。
           node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
+
+      - name: Use npm 10 (avoid npm 11 monorepo regression)
+        run: npm install -g npm@10
 
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable branch, 2026-07
@@ -92,11 +96,9 @@ jobs:
           restore-keys: electron-bin-${{ runner.os }}-
 
       - name: Install npm dependencies
-        # ci 锁死在 package-lock.json 上,但工作流从 genspark-ai 上游 fork 的 lock
-        # 在 npm 11+ 下包含 duplicate dependency references,electron-builder
-        # 在打 macOS app.asar 时报 'index.js not found'。改用 install 允许
-        # npm 重新解析 workspace 之间的 peer dep,产出一致的 lock。
-        run: npm install --no-audit --no-fund --prefer-offline
+        # 用 npm install (不用 ci) 允许 npm 重新解析 workspace 之间的 peer dep
+        # 加 --legacy-peer-deps 容错 strict 模式
+        run: npm install --no-audit --no-fund --prefer-offline --legacy-peer-deps
 
       # macOS requires explicit npm scripts for universal binary + DMG signing
       - name: Pre-build (macOS universal sidecar)
