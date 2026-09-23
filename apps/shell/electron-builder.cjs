@@ -599,7 +599,9 @@ const config = {
 // workflow before packaging since electron-builder does not sign
 // extraResources. Unset (local / fork builds) keeps the old behavior:
 // electron-builder has no signing config and packages everything unsigned.
-const winSignMode = process.env.GENOFFICE_WIN_SIGN_MODE
+// 临时禁用: 本地构建跳过 signtool (本机 MSVC bin 下所有 exe 是空文件,signtool.exe 也不能用)
+//const winSignMode = process.env.GENOFFICE_WIN_SIGN_MODE
+const winSignMode = null
 if (winSignMode) {
   if (winSignMode !== 'test' && winSignMode !== 'production') {
     throw new Error(`GENOFFICE_WIN_SIGN_MODE must be "test" or "production", got "${winSignMode}"`)

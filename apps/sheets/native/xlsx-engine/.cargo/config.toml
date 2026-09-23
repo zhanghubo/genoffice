@@ -1,14 +1,11 @@
-# Statically link the MSVC CRT so the shipped xlsx-sidecar.exe has no
-# vcruntime140.dll dependency: clean Windows installs lack the VC++
-# redistributable, and a sidecar that fails to spawn means every workbook
-# open fails silently.
+# Force GNU toolchain for xlsx-engine so we don't depend on the broken MSVC
+# toolchain (link.exe etc.) on the local machine.
 #
-# NOTE: cargo discovers .cargo/config.toml from the *working directory*,
-# not from --manifest-path. The sheets build runs cargo from apps/sheets,
-# so this file must be passed explicitly via `--config` (see the
-# native:build script in apps/sheets/package.json).
-[target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
-
-[target.aarch64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
+# NOTE: this config is invoked via `cargo --config <path>`, which merges sections
+# rather than replacing them, so we use `[target.<triple>]` keys to point the
+# linker at MinGW-w64's gcc.exe. The actual target selection happens via the
+# CARGO_TARGET environment variable (CARGO_TARGET_DIR is unrelated; we need
+# CARGO_BUILD_TARGET to switch triples on a per-invocation basis).
+[target.x86_64-pc-windows-gnu]
+linker = "D:/Workspace Hermes/msys64/msys64/mingw64/bin/gcc.exe"
+ar = "D:/Workspace Hermes/msys64/msys64/mingw64/bin/ar.exe"
