@@ -92,7 +92,11 @@ jobs:
           restore-keys: electron-bin-${{ runner.os }}-
 
       - name: Install npm dependencies
-        run: npm ci
+        # ci 锁死在 package-lock.json 上,但工作流从 genspark-ai 上游 fork 的 lock
+        # 在 npm 11+ 下包含 duplicate dependency references,electron-builder
+        # 在打 macOS app.asar 时报 'index.js not found'。改用 install 允许
+        # npm 重新解析 workspace 之间的 peer dep,产出一致的 lock。
+        run: npm install --no-audit --no-fund --prefer-offline
 
       # macOS requires explicit npm scripts for universal binary + DMG signing
       - name: Pre-build (macOS universal sidecar)
